@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Personas</title>
+    <style>
+        body {
+            background-color: rgb(210, 210, 210);
+        }
+
+        .container {
+            margin-top: 50px;
+        }
+
+        .registro-form {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            margin: auto;
+            width: 50%;
+        }
+
+        .form-title {
+            background-color: rgb(228, 0, 43);
+            color: white;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .form-group input {
+            width: 100%;
+        }
+
+        #personas-table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        #personas-table th,
+        #personas-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        #personas-table th {
+            background-color: rgb(228, 0, 43);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="registro-form">
+            <h2 class="form-title">Registro de Personas</h2>
+            <form id="formulario" method="post">
+                <div class="form-group">
+                    <label for="nombre">Nombre completo:</label>
+                    <input type="text" id="nombre" pattern="[a-zA-Z\s]+" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefonoCasa">Teléfono de casa:</label>
+                    <input type="text" id="telefonoCasa" pattern="2[0-9]{7}" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefonoCelular">Teléfono de celular:</label>
+                    <input type="text" id="telefonoCelular" pattern="[3896][0-9]{7}" required>
+                </div>
+                <div class="form-group">
+                    <label for="fechaNacimiento">Fecha de nacimiento:</label>
+                    <input type="date" id="fechaNacimiento" required>
+                </div>
+                <div class="form-group text-center">
+                    <button type="button" onclick="confirmarGuardar()">Guardar información</button>
+                </div>
+            </form>
+        </div>
+
+        <h2 class="form-title">Personas Registradas</h2>
+        <table id="personas-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Teléfono de casa</th>
+                    <th>Teléfono de celular</th>
+                    <th>Fecha de nacimiento</th>
+                    <th>Fecha y hora de registro</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="personas-body">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function confirmarGuardar() {
+
+            var nombre = document.getElementById('nombre');
+            var telefonoCasa = document.getElementById('telefonoCasa');
+            var telefonoCelular = document.getElementById('telefonoCelular');
+            var fechaNacimiento = document.getElementById('fechaNacimiento');
+
+            if (!nombre.checkValidity()) {
+                alert("Solo se permiten mayusculas y minusculas");
+                return;
+            }
+
+            if (!telefonoCasa.checkValidity()) {
+                alert("El telefono de casa debe empezar con 2 y debe ser de 8 digitos");
+                return;
+            }
+
+            if (!telefonoCelular.checkValidity()) {
+                alert("El telefon celular debe empezar con 9, 3 o 8 y debe ser de 8 digitos");
+                return;
+            }
+
+            if (!fechaNacimiento.checkValidity()) {
+                alert("Debe seleccionar una fecha de nacimiento");
+                return;
+            }
+
+            const dateNow = new Date();
+            const dateBorn = new Date(fechaNacimiento.value);
+
+            const aniosDiff = dateNow.getFullYear() - dateBorn.getFullYear();
+            if (aniosDiff >= 18 && aniosDiff <= 65) {
+                if (confirm('¿Está seguro que desea guardar la información de ' + nombre.value + '?')) {
+                    guardarPersona();
+                }
+
+            } else {
+                alert('La edad permitida es entre 18 y 65');
+            }
+
+        }
+
+        function guardarPersona() {
+            var nombre = document.getElementById('nombre').value;
+            var telefonoCasa = document.getElementById('telefonoCasa').value;
+            var telefonoCelular = document.getElementById('telefonoCelular').value;
+            var fechaNacimiento = document.getElementById('fechaNacimiento').value;
+            var fechaHoraRegistro = new Date().toLocaleString();
+
+            let personas = JSON.parse(localStorage.getItem('personas')) || [];
+
+            // Obtener el próximo ID en formato "00000"
+            var nuevoId = (personas.length + 1).toString().padStart(5, '0');
+
+            let persona = {
+                id: nuevoId,
+                nombre: nombre,
+                telefonoCasa: telefonoCasa,
+                telefonoCelular: telefonoCelular,
+                fechaNacimiento: fechaNacimiento,
+                fechaHoraRegistro: fechaHoraRegistro
+            };
+
+            personas.push(persona);
+            localStorage.setItem('personas', JSON.stringify(personas));
+
+            limpiarCampos();
+            mostrarPersonas(personas);
+        }
+
+        function limpiarCampos() {
+            document.getElementById('nombre').value = '';
+            document.getElementById('telefonoCasa').value = '';
+            document.getElementById('telefonoCelular').value = '';
+            document.getElementById('fechaNacimiento').value = '';
+        }
+
+        function mostrarPersonas(people) {
+
+            if (postMessage)
+             
+                fetch("http://localhost:3000/guardarPersona",
+                    {
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+
+                        body: JSON.stringify({ personas: people })
+                    })
+                    .then(function (response) {
+                        return response.json()
+                    })
+                    .then(function (data) {
+                        console.log(data)
+                        document.getElementById('personas-body').innerHTML = data.respuesta;
+
+                    })
+                    .catch(function (res) { console.log(res) })
+           
+        }
+
+        function eliminarPersona(id) {
+            let personas = JSON.parse(localStorage.getItem('personas')) || [];
+            let nuevasPersonas = personas.filter(function (persona) {
+                return persona.id != id;
+            });
+
+            localStorage.setItem('personas', JSON.stringify(nuevasPersonas));
+            personas = JSON.parse(localStorage.getItem('personas')) || [];
+            mostrarPersonas(personas);
+        }
+
+        let personas = JSON.parse(localStorage.getItem('personas')) || [];
+        window.onload = mostrarPersonas(personas);
+    </script>
+</body>
+
+</html>
